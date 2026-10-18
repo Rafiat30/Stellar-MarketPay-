@@ -47,7 +47,7 @@ const createRateLimiter = (maxRequests, windowMinutes, options = {}) => {
     windowMs: windowMinutes * 60 * 1000,
     max: scaleMaxRequests(maxRequests),
     standardHeaders: true,
-    legacyHeaders: true,
+    legacyHeaders: false,
     keyGenerator: (req) => req.ip,
     handler: (req, res) => {
       const retryAfter = Math.ceil(windowMinutes * 60);

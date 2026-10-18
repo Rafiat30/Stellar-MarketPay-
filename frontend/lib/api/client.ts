@@ -116,6 +116,57 @@ export function getResponseRequestId(error: unknown): string | null {
   return error.response?.headers?.[REQUEST_ID_HEADER.toLowerCase()] ?? null;
 }
 
+// ── Rate limit warnings (Issue #1778) ─────────────────────────────────────────
+// The backend sends the standard IETF `RateLimit-*` headers (draft-6 via
+// express-rate-limit `standardHeaders: true`) and no longer emits the
+// deprecated `X-RateLimit-*` set (`legacyHeaders: false`). Everything below
+// reads only the standard header names.
+
+/** DOM event dispatched when a response shows the rate-limit bucket is nearly exhausted. */
+export const RATE_LIMIT_WARNING_EVENT = "ratelimit-warning";
+
+/** Fraction of the limit at which the "slow down" warning fires. */
+export const RATE_LIMIT_WARNING_RATIO = 0.1;
+
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+}
+
+/**
+ * Parse the standard `RateLimit-Limit` / `RateLimit-Remaining` headers from an
+ * axios response-headers object (header names are lower-cased by XHR/axios).
+ * Returns `null` when the standard headers are absent — the legacy
+ * `X-RateLimit-*` names are deliberately ignored.
+ */
+export function getRateLimitInfo(headers: unknown): RateLimitInfo | null {
+  if (!headers || typeof headers !== "object") return null;
+  const record = headers as Record<string, unknown>;
+  const limit = Number(record["ratelimit-limit"]);
+  const remaining = Number(record["ratelimit-remaining"]);
+  if (!Number.isFinite(limit) || limit <= 0 || !Number.isFinite(remaining)) return null;
+  return { limit, remaining };
+}
+
+/** True when at most 10% (minimum 1 request) of the bucket is left. */
+export function shouldWarnAboutRateLimit(info: RateLimitInfo): boolean {
+  const threshold = Math.max(1, Math.ceil(info.limit * RATE_LIMIT_WARNING_RATIO));
+  return info.remaining <= threshold;
+}
+
+/**
+ * Inspect response headers and dispatch `RATE_LIMIT_WARNING_EVENT` when the
+ * standard `RateLimit-*` headers report the bucket is nearly exhausted.
+ * Returns `true` when the event was dispatched.
+ */
+export function maybeDispatchRateLimitWarning(headers: unknown): boolean {
+  const info = getRateLimitInfo(headers);
+  if (!info || !shouldWarnAboutRateLimit(info)) return false;
+  if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") return false;
+  window.dispatchEvent(new Event(RATE_LIMIT_WARNING_EVENT));
+  return true;
+}
+
 // ── CSRF (Issue #451) ────────────────────────────────────────────────────────
 const CSRF_HEADER = "X-CSRF-Token";
 const CSRF_TOKEN_URL = "/api/auth/csrf-token";
@@ -250,6 +301,7 @@ api.interceptors.response.use(
         console.debug(`[api] ${response.config?.method?.toUpperCase()} ${response.config?.url} → ${response.status} requestId=${serverId}`);
       }
     }
+    maybeDispatchRateLimitWarning(response.headers);
     return response;
   },
   async (error) => {
@@ -262,6 +314,12 @@ api.interceptors.response.use(
         `[api] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.response?.status || "NETWORK"} ` +
           `requestId=${serverId || clientId || "?"}`,
       );
+    }
+
+    // Surface an approaching-limit warning from 4xx/429 responses too — they
+    // carry the same standard RateLimit-* headers.
+    if (axios.isAxiosError(error)) {
+      maybeDispatchRateLimitWarning(error.response?.headers);
     }
 
     const originalRequest = error.config || {};

@@ -207,7 +207,7 @@ app.use(cors({
   credentials: true,
 }));
  
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 150, standardHeaders: true, legacyHeaders: true }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 150, standardHeaders: true, legacyHeaders: false }));
  
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/health",            healthRoutes);
@@ -245,7 +245,7 @@ app.use("/api/referrals",         referralRoutes);
 app.use("/api/reputation",        reputationRoutes);
 app.use("/api/auto-convert",      autoConvertRoutes);
 app.use("/api/talent-pools",      talentPoolRoutes);
-app.use("/api/invitations",       rateLimit({ windowMs: 60_000, max: 20 }), invitationRoutes);
+app.use("/api/invitations",       rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false }), invitationRoutes);
 app.use("/api/analytics",         analyticsRoutes);
 app.use("/api/search",            searchRoutes);
 app.use("/ping",                  pingRoutes);
