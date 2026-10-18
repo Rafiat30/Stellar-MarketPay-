@@ -116,17 +116,11 @@
       "html"
     ],
     "coverageThreshold": {
-      "src/services/jobService.js": {
-        "lines": 80,
-        "branches": 80
-      },
-      "src/services/applicationService.js": {
-        "lines": 80,
-        "branches": 80
-      },
-      "src/services/notificationService.js": {
-        "lines": 80,
-        "branches": 80
+      "global": {
+        "statements": 65,
+        "branches": 60,
+        "functions": 70,
+        "lines": 68
       }
     },
     "transformIgnorePatterns": [

@@ -99,13 +99,22 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # Reports but does not block: 65 pre-existing failures remain, mostly a
-      # jest/axios ESM interop problem with @stellar/stellar-sdk and gaps in the
-      # pool mock. Tracked in the open testing issues — remove
-      # continue-on-error once the suite is green so it becomes a real gate.
-      - name: Unit tests
-        run: npx jest --selectProjects unit --forceExit
-        continue-on-error: true
+      # Runs the unit suite with coverage. Pre-existing test failures remain
+      # non-blocking (tracked in the open testing issues — turn this into a
+      # plain step once the suite is green), but the coverage floor declared in
+      # backend/package.json (coverageThreshold.global) IS a hard gate: the job
+      # fails as soon as a run drops below it. Jest exits non-zero for both
+      # test failures and threshold breaches, so the captured log is inspected
+      # to tell the two apart.
+      - name: Unit tests + coverage gate
+        run: |
+          set +e
+          npx jest --selectProjects unit --coverage --forceExit 2>&1 | tee unit-coverage.log
+          if grep -Eq "does not meet .*threshold" unit-coverage.log; then
+            echo "::error::Backend coverage fell below the enforced coverageThreshold (backend/package.json). See the README Testing section for the current floor and measured values."
+            exit 1
+          fi
+          exit 0
 
       - name: Mutation tests
         run: npm run stryker

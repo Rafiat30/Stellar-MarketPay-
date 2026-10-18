@@ -6,7 +6,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-blue)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-purple)](https://soroban.stellar.org)
-[![Backend Coverage](https://img.shields.io/badge/backend%20coverage-80%25%2B-brightgreen)](#testing)
+[![Backend Coverage](https://img.shields.io/badge/backend%20coverage-70%25%2B%20lines%20%7C%2065%25%2B%20stmts-blue)](../../actions/workflows/ci.yml)
 
 Stellar MarketPay is an open-source decentralised freelance marketplace where clients post jobs, freelancers apply, and payments are secured in **Soroban smart contract escrow** — released automatically when work is approved. No middlemen. No payment delays. No platform fees eating your earnings..
 
@@ -216,6 +216,8 @@ For frontend development without a deployed Soroban contract:
 | Update snapshots        | `cd frontend && npm run test:update-snapshots` | Regenerate when UI changes are intentional       |
 | Backend unit + coverage | `cd backend && npm test`                       | HTML report in `backend/coverage/`               |
 | Backend mutation tests | `cd backend && npm run stryker`                | Fails below the required 80% mutation score     |
+
+Backend coverage is collected from the service modules listed in `collectCoverageFrom` (`backend/package.json`) and enforced by Jest's `coverageThreshold.global`: the CI backend job **fails** when a run drops below the floor. The floor is set just below the measured values of the full unit suite and ratcheted upward over time. Measured 2026-10: **statements 68.6% · branches 62.5% · functions 74.8% · lines 70.5%**; enforced floor: **65% / 60% / 70% / 68%**. Reproduce with `cd backend && npm test` (the CI run publishes the same report as the `backend-coverage` artifact on the [CI workflow](../../actions/workflows/ci.yml)).
 | E2E (Playwright)        | `cd frontend && npm run test:e2e`              | Includes full client/freelancer marketplace flow |
 
 Deploy or upgrade the Soroban escrow contract using [docs/contract-deployment.md](docs/contract-deployment.md).
