@@ -254,7 +254,7 @@ cd backend
 npm test
 ```
 
-Coverage HTML is written to `backend/coverage/`. Enforced thresholds: 60% lines, 50% branches on middleware and service modules.
+Coverage HTML is written to `backend/coverage/`. Enforced thresholds: the global `coverageThreshold` in `backend/package.json` — currently 65% statements, 60% branches, 70% functions and 68% lines across the collected service modules. CI fails the backend job when a run drops below these floors. Measured on the full unit suite (2026-10): 68.6% statements, 62.5% branches, 74.8% functions, 70.5% lines — ratchet the floors upward as coverage improves.
 
 ### End-to-end tests
 
